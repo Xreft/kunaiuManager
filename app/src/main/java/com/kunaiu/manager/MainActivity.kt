@@ -16,6 +16,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 class MainActivity : AppCompatActivity() {
     private lateinit var tokenInput: EditText
@@ -124,7 +125,6 @@ class MainActivity : AppCompatActivity() {
     fun hideComment(commentId: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // ✅ تحديد نوع المحتوى كـ form-urlencoded
                 val requestBody = "comment_id=$commentId".toRequestBody(
                     "application/x-www-form-urlencoded".toMediaTypeOrNull()
                 )
@@ -141,7 +141,6 @@ class MainActivity : AppCompatActivity() {
                 val response = client.newCall(request).execute()
                 val responseBody = response.body?.string() ?: ""
                 
-                // ✅ طباعة الاستجابة في Logcat للتشخيص
                 println("Hide Response: ${response.code} - $responseBody")
                 
                 withContext(Dispatchers.Main) {
@@ -158,3 +157,4 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+}
