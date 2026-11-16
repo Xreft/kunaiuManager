@@ -124,7 +124,11 @@ class MainActivity : AppCompatActivity() {
     fun hideComment(commentId: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val requestBody = "comment_id=$commentId".toRequestBody()
+                // ✅ تحديد نوع المحتوى كـ form-urlencoded
+                val requestBody = "comment_id=$commentId".toRequestBody(
+                    "application/x-www-form-urlencoded".toMediaTypeOrNull()
+                )
+                
                 val request = Request.Builder()
                     .url("https://api.kunaiu.com/anime-social/api/posts/comment/hide")
                     .addHeader("Authorization", "Bearer $token")
@@ -135,11 +139,16 @@ class MainActivity : AppCompatActivity() {
                     .build()
 
                 val response = client.newCall(request).execute()
+                val responseBody = response.body?.string() ?: ""
+                
+                // ✅ طباعة الاستجابة في Logcat للتشخيص
+                println("Hide Response: ${response.code} - $responseBody")
+                
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         Toast.makeText(this@MainActivity, "تم إخفاء التعليق", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(this@MainActivity, "فشل الإخفاء", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "فشل الإخفاء (${response.code})", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
@@ -149,4 +158,3 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-}
