@@ -3,13 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="#1a1a1a"
+    android:fitsSystemWindows="true">
 
     <EditText
         android:id="@+id/tokenInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="أدخل التوكن هنا"
+        android:textColorHint="#888"
+        android:textColor="#eee"
         android:inputType="text" />
 
     <Button
@@ -18,12 +22,29 @@
         android:layout_height="wrap_content"
         android:text="حفظ التوكن" />
 
+    <Button
+        android:id="@+id/hideSelectedBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🗑️ إخفاء المحدد"
+        android:backgroundTint="#e74c3c"
+        android:enabled="false" />
+
     <TextView
         android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="أدخل التوكن أولاً."
-        android:padding="8dp" />
+        android:padding="8dp"
+        android:textColor="#eee" />
+
+    <!-- زر تحديد الكل / إلغاء تحديد الكل -->
+    <Button
+        android:id="@+id/selectAllBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="☑️ تحديد الكل"
+        android:enabled="false" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/postsRecycler"
