@@ -24,7 +24,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var postsRecycler: RecyclerView
     private lateinit var commentsRecycler: RecyclerView
     private lateinit var statusText: TextView
+    private lateinit var hideSelectedBtn: Button
+    private lateinit var selectAllBtn: Button
 
+    // ⚠️ متغيرات جديدة
+    private var currentPostId: String? = null
+    private var currentCommentsAdapter: CommentsAdapter? = null
     private var token: String = ""
     private val client = OkHttpClient()
 
@@ -32,11 +37,31 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // ⚠️ تغيير ألوان النظام (شريط الحالة وشريط التنقل)
+        window.statusBarColor = android.graphics.Color.parseColor("#1a1a1a")
+        window.navigationBarColor = android.graphics.Color.parseColor("#1a1a1a")
+
+        // ربط المتغيرات
         tokenInput = findViewById(R.id.tokenInput)
         saveTokenBtn = findViewById(R.id.saveTokenBtn)
         postsRecycler = findViewById(R.id.postsRecycler)
         commentsRecycler = findViewById(R.id.commentsRecycler)
         statusText = findViewById(R.id.statusText)
+        hideSelectedBtn = findViewById(R.id.hideSelectedBtn)
+        selectAllBtn = findViewById(R.id.selectAllBtn)
+
+        // زر "تحديد الكل"
+        selectAllBtn.setOnClickListener {
+            currentCommentsAdapter?.selectAll()
+        }
+
+        // زر "إخفاء المحدد"
+        hideSelectedBtn.setOnClickListener {
+            val selected = currentCommentsAdapter?.getSelectedComments() ?: emptyList()
+            if (selected.isNotEmpty()) {
+                hideSelectedComments(selected)
+            }
+        }
 
         // تحميل التوكن المحفوظ
         token = getSharedPreferences("prefs", MODE_PRIVATE).getString("token", "") ?: ""
@@ -94,6 +119,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun loadComments(postId: String) {
+        currentPostId = postId // ⚠️ حفظ رقم المنشور الحالي
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val request = Request.Builder()
@@ -111,8 +137,13 @@ class MainActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     val adapter = CommentsAdapter(dataArray, this@MainActivity)
+                    currentCommentsAdapter = adapter // ⚠️ حفظ الأداة
                     commentsRecycler.adapter = adapter
                     statusText.text = "تم تحميل ${dataArray.length()} تعليق."
+                    
+                    // تفعيل أزرار التحديد بعد تحميل التعليقات
+                    selectAllBtn.isEnabled = true
+                    hideSelectedBtn.isEnabled = false
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -146,6 +177,8 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         Toast.makeText(this@MainActivity, "تم إخفاء التعليق", Toast.LENGTH_SHORT).show()
+                        // إعادة تحميل التعليقات بعد الإخفاء
+                        currentPostId?.let { loadComments(it) }
                     } else {
                         Toast.makeText(this@MainActivity, "فشل الإخفاء (${response.code})", Toast.LENGTH_SHORT).show()
                     }
@@ -154,6 +187,51 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "خطأ: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
+            }
+        }
+    }
+
+    // ⚠️ دوال جديدة لتحديث حالة الأزرار وإخفاء المحدد
+    fun updateHideButtonState(enabled: Boolean) {
+        hideSelectedBtn.isEnabled = enabled
+        if (enabled) {
+            val count = currentCommentsAdapter?.getSelectedComments()?.size ?: 0
+            hideSelectedBtn.text = "🗑️ إخفاء المحدد ($count)"
+        } else {
+            hideSelectedBtn.text = "🗑️ إخفاء المحدد"
+        }
+    }
+
+    fun updateSelectAllButtonText(allSelected: Boolean) {
+        selectAllBtn.text = if (allSelected) "☑️ إلغاء تحديد الكل" else "☑️ تحديد الكل"
+    }
+
+    fun hideSelectedComments(commentIds: List<String>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            var successCount = 0
+            for (commentId in commentIds) {
+                try {
+                    val requestBody = "comment_id=$commentId".toRequestBody(
+                        "application/x-www-form-urlencoded".toMediaTypeOrNull()
+                    )
+                    val request = Request.Builder()
+                        .url("https://api.kunaiu.com/anime-social/api/posts/comment/hide")
+                        .addHeader("Authorization", "Bearer $token")
+                        .addHeader("Client-Id", "kunaiu-android")
+                        .addHeader("Client-Secret", "b7022a16e0c896575g2d82c33a8h2d9d36781g33")
+                        .addHeader("Accept", "application/json")
+                        .post(requestBody)
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    if (response.isSuccessful) successCount++
+                } catch (e: Exception) {
+                    // تجاهل الخطأ
+                }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, "تم إخفاء $successCount تعليق", Toast.LENGTH_SHORT).show()
+                currentPostId?.let { loadComments(it) }
             }
         }
     }
